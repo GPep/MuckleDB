@@ -60,4 +60,4 @@ END CATCH
 END
 
 
---EXECUTE sp_createNewAccount @cust_id = '7000001', @product_id = 1, @branch_id = 1, @Emp_id = 1
+--EXECUTE sp_createNewAccount @cust_id = '7000001', @product_id = 1, @branch_id = 1, @Emp_id = 12
