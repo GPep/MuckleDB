@@ -14,7 +14,7 @@ IF OBJECT_ID('sp_createNewAccount') IS NULL
   EXEC ('CREATE PROCEDURE sp_createNewAccount AS RETURN 0;')
 GO
 
-ALTER PROCEDURE [dbo].[sp_createNewAccount] @cust_id int, @product_id int, @branch_id int = 1, @Emp_id int = 12
+ALTER PROCEDURE [dbo].[sp_createNewAccount] @cust_id int, @product_id int, @branch_id int = 1, @Emp_id int = 12, @amount Decimal(20,2) = '100.00'
 AS
 BEGIN
 SET NOCOUNT ON;
@@ -41,7 +41,7 @@ INSERT INTO ACCOUNT(account_id, Last_activity_Date, Status, Cust_id, OPEN_BRANCH
 VALUES(@Account_id, getdate(), 'ACTIVE', @cust_id, @branch_id, @emp_id, @Product_id)
 
 INSERT INTO ACC_TRANSACTION(Amount, TXN_TYPE_CD, ACCOUNT_ID, EXECUTION_BRANCH_ID, TELLER_EMP_ID)
-VALUES ('100.00', 'CDT', @Account_id, @branch_id, @Emp_id)
+VALUES (@amount, 'CDT', @Account_id, @branch_id, @Emp_id)
 
 COMMIT TRANSACTION;
 
