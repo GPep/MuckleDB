@@ -1,14 +1,14 @@
 USE MASTER
 GO
 
-ALTER DATABASE MUCKLEDB
-SET SINGLE_USER WITH ROLLBACK IMMEDIATE
-GO
+
 
 IF EXISTS (SELECT name FROM sys.databases
 WHERE NAME = 'MuckleDB'
 )
 BEGIN
+ALTER DATABASE MUCKLEDB
+SET SINGLE_USER WITH ROLLBACK IMMEDIATE
 DROP DATABASE MuckleDB
 END
 
@@ -42,6 +42,7 @@ CREATE SEQUENCE [dbo].[Account_ID]
  INCREMENT BY 1
 
 GO
+
 
 IF OBJECT_ID('dbo.fn_AccountBalance') IS NOT NULL
 DROP FUNCTION dbo.fn_AccountBalance;
@@ -127,10 +128,10 @@ DROP TABLE ACCOUNT
 END
 
     CREATE TABLE ACCOUNT (
-        ACCOUNT_ID INT not null,
+        ACCOUNT_ID INT not null PRIMARY KEY,
         AVAIL_BALANCE AS (dbo.fn_accountBalance(Account_id)),
         CLOSE_DATE datetime,
-        LAST_ACTIVITY_DATE AS (dbo.fn_lastActiveDate(Account_id)),
+        LAST_ACTIVITY_DATE datetime,
         OPEN_DATE datetime not null
 		CONSTRAINT df_open_date DEFAULT (sysdatetime()),
         PENDING_BALANCE AS (dbo.fn_PendingBalance(Account_id)),
@@ -138,8 +139,28 @@ END
         CUST_ID int NOT NULL,
         OPEN_BRANCH_ID int not null,
         OPEN_EMP_ID int not null,
-        PRODUCT_id INT not null,
-        PRIMARY KEY (ACCOUNT_ID)
+        PRODUCT_id INT not null
+    );
+
+
+
+
+
+
+IF OBJECT_ID('BRANCH','u') IS NOT NULL
+BEGIN
+DROP TABLE BRANCH
+END
+
+    CREATE TABLE BRANCH (
+        BRANCH_ID int identity (1,1) not null PRIMARY KEY,
+        ADDRESS varchar(30),
+        CITY varchar(20),
+        NAME varchar(20) not null,
+        COUNTY varchar(20),
+        POST_CODE varchar(10),
+		CREATE_DATE datetime
+		CONSTRAINT df_branchCreateDate DEFAULT (getdate())
     );
 
 IF OBJECT_ID('TRANSACTION_TYPE','u') IS NOT NULL
@@ -158,7 +179,7 @@ DROP TABLE ACC_TRANSACTION
 END
 
     CREATE TABLE ACC_TRANSACTION (
-        TXN_ID INT identity(1,1) not null,
+        TXN_ID INT identity(1,1) not null PRIMARY KEY,
         AMOUNT DECIMAL(20,2) not null,
         FUNDS_AVAIL_DATE datetime not null
 		CONSTRAINT df_fundsDate DEFAULT (getdate()),
@@ -167,25 +188,26 @@ END
         TXN_TYPE_CD CHAR(3) FOREIGN KEY REFERENCES TRANSACTION_TYPE(TXN_TYPE),
         ACCOUNT_ID int,
         EXECUTION_BRANCH_ID int,
-        TELLER_EMP_ID int,
-        PRIMARY KEY (TXN_ID)
+        TELLER_EMP_ID int
     );
 
+ 
 
-
-IF OBJECT_ID('BRANCH','u') IS NOT NULL
+IF OBJECT_ID('CUSTOMER','u') IS NOT NULL
 BEGIN
-DROP TABLE BRANCH
+DROP TABLE CUSTOMER
 END
 
-    CREATE TABLE BRANCH (
-        BRANCH_ID int identity (1,1) not null,
-        ADDRESS varchar(30),
-        CITY varchar(20),
-        NAME varchar(20) not null,
-        COUNTY varchar(20),
-        POST_CODE varchar(10),
-        PRIMARY KEY (BRANCH_ID)
+    CREATE TABLE CUSTOMER (
+        CUST_ID int not null PRIMARY KEY,
+		CUST_TYPE_CD varchar(1) not null,
+        ADDRESS varchar(100),
+        Town varchar(50),
+        COUNTY varchar(50),
+		POST_CODE varchar(7),
+		Country Varchar(25),
+		CREATE_DATE datetime NOT NULL
+		CONSTRAINT df_customerCreateDate DEFAULT (getdate())
     );
 
 IF OBJECT_ID('BUSINESS','u') IS NOT NULL
@@ -197,24 +219,11 @@ END
         INCORP_DATE datetime,
         NAME varchar(255) not null,
         CUST_ID int not null,
-        PRIMARY KEY (CUST_ID)
+        PRIMARY KEY (CUST_ID),
+		CREATE_DATE datetime NOT NULL
+		CONSTRAINT df_businessCreateDate DEFAULT (getdate())
     );
 
-IF OBJECT_ID('CUSTOMER','u') IS NOT NULL
-BEGIN
-DROP TABLE CUSTOMER
-END
-
-    CREATE TABLE CUSTOMER (
-        CUST_ID int not null,
-		CUST_TYPE_CD varchar(1) not null,
-        ADDRESS varchar(100),
-        Town varchar(50),
-        COUNTY varchar(50),
-		POST_CODE varchar(7),
-		Country Varchar(25),
-        PRIMARY KEY (CUST_ID)
-    );
 
 IF OBJECT_ID('DEPARTMENT','u') IS NOT NULL
 BEGIN
@@ -222,9 +231,8 @@ DROP TABLE DEPARTMENT
 END
    
     CREATE TABLE DEPARTMENT (
-        DEPT_ID int identity(1,1) not null,
+        DEPT_ID int identity(1,1) not null PRIMARY KEY,
         NAME varchar(20) not null,
-        PRIMARY KEY (DEPT_ID)
     );
 
 IF OBJECT_ID('EMPLOYEE','u') IS NOT NULL
@@ -233,7 +241,7 @@ DROP TABLE EMPLOYEE
 END
 
     CREATE TABLE EMPLOYEE (
-        EMP_ID int identity(1,1) not null,
+        EMP_ID int identity(1,1) not null PRIMARY KEY,
         END_DATE datetime,
         FIRST_NAME varchar(20) not null,
         LAST_NAME varchar(20) not null,
@@ -242,7 +250,8 @@ END
         ASSIGNED_BRANCH_ID int,
         DEPT_ID int,
         SUPERIOR_EMP_ID int,
-        PRIMARY KEY (EMP_ID)
+		CREATE_DATE datetime NOT NULL
+		CONSTRAINT df_EMPCreateDate DEFAULT (getdate())
     );
 
 IF OBJECT_ID('INDIVIDUAL','u') IS NOT NULL
@@ -259,8 +268,9 @@ END
 		CONSTRAINT ck_birth_date CHECK (Birth_date < sysdatetime()),
 		EmailAddress varchar(50),
 	    PhoneNumber Char(10),
-        CUST_ID int not null
-
+        CUST_ID int not null,
+		Create_Date datetime NOT NULL
+		CONSTRAINT DF_IndivCreateDate DEFAULT (getdate())
     );
 
 IF OBJECT_ID('OFFICER','u') IS NOT NULL
@@ -269,30 +279,17 @@ DROP TABLE OFFICER
 END
 
     CREATE TABLE OFFICER (
-        OFFICER_ID int identity(1,1) not null,
+        OFFICER_ID int identity(1,1) not null PRIMARY KEY,
         END_DATE datetime,
         FIRST_NAME varchar(30) not null,
         LAST_NAME varchar(30) not null,
         START_DATE datetime not null,
         TITLE varchar(20),
         CUST_ID int,
-        PRIMARY KEY (OFFICER_ID)
+		CREATE_DATE datetime NOT NULL
+		CONSTRAINT df_OfficerCreateDate DEFAULT (getdate())
     );
 
-IF OBJECT_ID('PRODUCT','u') IS NOT NULL
-BEGIN
-DROP TABLE PRODUCT
-
-END
-
-    CREATE TABLE PRODUCT (
-		ID INT IDENTITY NOT NULL PRIMARY KEY,
-        PRODUCT_CD varchar(10) not null  UNIQUE,
-        DATE_OFFERED datetime,
-        DATE_RETIRED datetime,
-        NAME varchar(50) not null,
-        PRODUCT_TYPE_CD VARCHAR(10) NOT NULL
-    );
 
 IF OBJECT_ID('PRODUCT_TYPE','u') IS NOT NULL
 BEGIN
@@ -304,81 +301,95 @@ END
         NAME varchar(50) NOT NULL
     );
 
+IF OBJECT_ID('PRODUCT','u') IS NOT NULL
+BEGIN
+DROP TABLE PRODUCT
+
+END
+
+    CREATE TABLE PRODUCT (
+		ID INT IDENTITY NOT NULL PRIMARY KEY,
+        PRODUCT_CD varchar(10) not null  UNIQUE,
+        DATE_OFFERED datetime
+		CONSTRAINT df_prod_dateOffered DEFAULT (getdate()),
+        DATE_RETIRED datetime,
+        NAME varchar(50) not null,
+        PRODUCT_TYPE_CD VARCHAR(10) NOT NULL
+    );
+
+
+
 
 --FOREIGN KEY
 
+
     ALTER TABLE ACCOUNT 
-        ADD CONSTRAINT ACCOUNT_CUSTOMER_FK 
+        ADD CONSTRAINT FK_ACCOUNT_CUSTOMER
         FOREIGN KEY (CUST_ID) 
         REFERENCES CUSTOMER;
 
     ALTER TABLE ACCOUNT 
-        ADD CONSTRAINT ACCOUNT_BRANCH_FK 
+        ADD CONSTRAINT FK_ACCOUNT_BRANCH 
         FOREIGN KEY (OPEN_BRANCH_ID) 
         REFERENCES BRANCH;
 
     ALTER TABLE ACCOUNT 
-        ADD CONSTRAINT ACCOUNT_EMPLOYEE_FK 
+        ADD CONSTRAINT FK_ACCOUNT_EMPLOYEE
         FOREIGN KEY (OPEN_EMP_ID) 
         REFERENCES EMPLOYEE;
 
     ALTER TABLE ACCOUNT 
-        ADD CONSTRAINT ACCOUNT_PRODUCT_FK 
+        ADD CONSTRAINT FK_ACCOUNT_PRODUCT
         FOREIGN KEY (PRODUCT_ID) 
         REFERENCES PRODUCT;
-
-    ALTER TABLE ACC_TRANSACTION 
-        ADD CONSTRAINT ACC_TRANSACTION_ACCOUNT_FK 
+ 
+   ALTER TABLE ACC_TRANSACTION 
+        ADD CONSTRAINT FK_ACC_TRANSACTION_ACCOUNT
         FOREIGN KEY (ACCOUNT_ID) 
         REFERENCES ACCOUNT;
 
     ALTER TABLE ACC_TRANSACTION 
-        ADD CONSTRAINT ACC_TRANSACTION_BRANCH_FK 
+        ADD CONSTRAINT FK_ACC_TRANSACTION_BRANCH 
         FOREIGN KEY (EXECUTION_BRANCH_ID) 
         REFERENCES BRANCH;
 
     ALTER TABLE ACC_TRANSACTION 
-        ADD CONSTRAINT ACC_TRANSACTION_EMPLOYEE_FK 
+        ADD CONSTRAINT FK_ACC_TRANSACTION_EMPLOYEE
         FOREIGN KEY (TELLER_EMP_ID) 
         REFERENCES EMPLOYEE;
 
     ALTER TABLE BUSINESS 
-        ADD CONSTRAINT BUSINESS_EMPLOYEE_FK 
+        ADD CONSTRAINT FK_BUSINESS_EMPLOYEE
         FOREIGN KEY (CUST_ID) 
         REFERENCES CUSTOMER;
 
     ALTER TABLE EMPLOYEE 
-        ADD CONSTRAINT EMPLOYEE_BRANCH_FK 
+        ADD CONSTRAINT FK_EMPLOYEE_BRANCH
         FOREIGN KEY (ASSIGNED_BRANCH_ID) 
         REFERENCES BRANCH;
 
     ALTER TABLE EMPLOYEE 
-        ADD CONSTRAINT EMPLOYEE_DEPARTMENT_FK 
+        ADD CONSTRAINT FK_EMPLOYEE_DEPARTMENT
         FOREIGN KEY (DEPT_ID) 
         REFERENCES DEPARTMENT;
 
     ALTER TABLE EMPLOYEE 
-        ADD CONSTRAINT EMPLOYEE_EMPLOYEE_FK 
+        ADD CONSTRAINT FK_EMPLOYEE_EMPLOYEE
         FOREIGN KEY (SUPERIOR_EMP_ID) 
         REFERENCES EMPLOYEE;
 
-    ALTER TABLE INDIVIDUAL 
-        ADD CONSTRAINT INDIVIDUAL_CUSTOMER_FK 
-        FOREIGN KEY (CUST_ID) 
-        REFERENCES CUSTOMER;
 
     ALTER TABLE OFFICER 
-        ADD CONSTRAINT OFFICER_CUSTOMER_FK 
+        ADD CONSTRAINT FK_OFFICER_CUSTOMER
         FOREIGN KEY (CUST_ID) 
         REFERENCES CUSTOMER;
 
     ALTER TABLE PRODUCT 
-        ADD CONSTRAINT PRODUCT_PRODUCT_TYPE_FK 
+        ADD CONSTRAINT FK_PRODUCT_PRODUCT_TYPE
         FOREIGN KEY (PRODUCT_TYPE_CD) 
         REFERENCES PRODUCT_TYPE;
 
 
- 
 -- ======================================================================== 
 -- ========================================================================
 -- ========================================================================
@@ -386,10 +397,6 @@ END
 
 /* begin data population */
 
--- department data
-
--- Disable 
---SET IDENTITY_INSERT CUSTOMER OFF;
 SET IDENTITY_INSERT department  ON;
 ---------------------
 INSERT INTO department (dept_id, name)
@@ -427,6 +434,9 @@ VALUES (3, 'Hastings Branch', '125 Presidential Way', 'Hastings', 'Sussex', 'TN3
 ---------------------
 INSERT INTO branch (branch_id, name, address, city, COUNTY, Post_Code)
 VALUES (4, 'Manchester Branch', '378 Maynard Ln.', 'Manchester', 'Lancashire', 'MN1 4AH');
+
+INSERT INTO branch (branch_id, name, address, city, COUNTY, Post_Code)
+VALUES (5, 'Online', 'MuckleDB.COM', 'Waltham', 'Essex', 'WT1 8HW');
 
 SET IDENTITY_INSERT branch  OFF;
 
@@ -560,12 +570,35 @@ VALUES (18, 'Caroline', 'Escobar',Convert(Datetime, '2002-12-12',120),
   (SELECT dept_id FROM department WHERE name = 'Operations'), 
   'Teller', 
   (SELECT branch_id FROM branch WHERE name = 'Manchester Branch'));
-  
+--Create Automatic Emp_id for automatic popluation
+INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
+  dept_id, title, assigned_branch_id)
+VALUES (19, 'Automatic', 'Creation',Convert(Datetime, '2002-12-12',120), 
+  (SELECT dept_id FROM department WHERE name = 'Operations'), 
+  'Auto', 
+  (SELECT branch_id FROM branch WHERE name = 'Headquarters'));
+--Create Automatic Emp_id for automatic popluation
+INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
+  dept_id, title, assigned_branch_id)
+VALUES (20, 'Online', 'Online',Convert(Datetime, '2002-12-12',120), 
+  (SELECT dept_id FROM department WHERE name = 'Operations'), 
+  'Auto', 
+  (SELECT branch_id FROM branch WHERE name = 'Online'));
+
+
+    
+
   
 SET IDENTITY_INSERT employee  OFF;  
   
 
--- create data for self-referencing FOREIGN KEY 'superior_emp_id'  
+-- create data for self-referencing FOREIGN KEY 'superior_emp_id' 
+
+IF OBJECT_ID('tempdb.dbo.#emp_tmp','u') IS NOT NULL
+BEGIN
+DROP TABLE #emp_tmp
+END
+ 
 SELECT emp_id, Title 
 INTO  #emp_tmp
 FROM EMPLOYEE
@@ -596,7 +629,14 @@ INSERT INTO TRANSACTION_TYPE (TXN_TYPE, DESCRIPTION)
 VALUES ('CDT','CREDIT');
 INSERT INTO TRANSACTION_TYPE (TXN_TYPE, DESCRIPTION)
 VALUES ('DBT','DEBIT');
-
+INSERT INTO TRANSACTION_TYPE (TXN_TYPE, DESCRIPTION)
+VALUES ('LOA','LOAN CREDIT');
+INSERT INTO TRANSACTION_TYPE (TXN_TYPE, DESCRIPTION)
+VALUES ('LPT','Loan Repayment');
+INSERT INTO TRANSACTION_TYPE (TXN_TYPE, DESCRIPTION)
+VALUES ('INT','Interest');
+INSERT INTO TRANSACTION_TYPE (TXN_TYPE, DESCRIPTION)
+VALUES ('OVD','Overdraft Interest');
 
 -- product type data 
 ---------------------
