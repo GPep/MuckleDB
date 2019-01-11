@@ -32,6 +32,8 @@ DECLARE @ErrorNumber AS INT, @ErrorMessage AS NVarchar(1000), @error_severity AS
 DECLARE @txn_type_cd char(3)
 DECLARE @branch_id int
 DECLARE @currentbalance decimal(20,2)
+DECLARE @Overdraft decimal(20,2)
+DECLARE @status varchar(10)
 
 BEGIN TRY;
 BEGIN TRANSACTION;
@@ -47,11 +49,22 @@ END
 
 SET @branch_id = (select assigned_branch_id from EMPLOYEE where EMP_ID = @emp_id)
 
---Check current balance - if less than zero, do not allow debit to complete.
+--Check if Account is active
+SET @status = (SELECT status from dbo.ACCOUNT)
+IF @status <> 'Active'
+BEGIN
+Print 'Account is ' + @Status
+COMMIT TRANSACTION
+RETURN
+END
+
+
+--Check current balance - if less than zero (or overdraft amount), do not allow debit to complete.
 
 SET @Currentbalance = (SELECT dbo.fn_AccountBalance(@account_id))
+SET @Overdraft = (SELECT overdraft FROM Account WHERE  ACCOUNT_ID = @account_id)
 
-IF (@currentbalance + @amount < 0)
+IF (@currentbalance + @amount < @Overdraft)
 BEGIN
 PRINT 'Not enough Funds available for this debit'
 COMMIT TRANSACTION;

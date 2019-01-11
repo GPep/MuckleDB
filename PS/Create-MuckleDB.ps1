@@ -98,7 +98,7 @@
        
 
        "*******************completed at $Time ***************" | out-file $logFile -append
-       Exit
+       #Exit
     }
    }
 

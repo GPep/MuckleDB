@@ -20,8 +20,6 @@ CREATE DATABASE [MuckleDB]
  LOG ON 
 ( NAME = N'MuckleDB_log', FILENAME = N'L:\MSSQL\LOGS\MuckleDB_log.ldf' , SIZE = 1024KB , FILEGROWTH = 151200KB )
 GO
-ALTER DATABASE [MuckleDB] SET COMPATIBILITY_LEVEL = 130
-GO
 ALTER DATABASE [MuckleDB] SET RECOVERY FULL 
 GO
 ALTER DATABASE [MuckleDB] SET TARGET_RECOVERY_TIME = 0 SECONDS 
@@ -42,6 +40,11 @@ CREATE SEQUENCE [dbo].[Account_ID]
  INCREMENT BY 1
 
 GO
+
+CREATE SEQUENCE [dbo].[Business_ID] 
+ AS [int]
+ START WITH 8000000
+ INCREMENT BY 1
 
 
 IF OBJECT_ID('dbo.fn_AccountBalance') IS NOT NULL
@@ -130,6 +133,9 @@ END
     CREATE TABLE ACCOUNT (
         ACCOUNT_ID INT not null PRIMARY KEY,
         AVAIL_BALANCE AS (dbo.fn_accountBalance(Account_id)),
+		OVERDRAFT DECIMAL(20,2) NOT NULL
+		CONSTRAINT df_odamount DEFAULT 0
+		CONSTRAINT ck_odamount CHECK (overdraft <= 0),
         CLOSE_DATE datetime,
         LAST_ACTIVITY_DATE datetime,
         OPEN_DATE datetime not null
@@ -216,12 +222,12 @@ DROP TABLE BUSINESS
 END
 
     CREATE TABLE BUSINESS (
-        INCORP_DATE datetime,
+        BUSINESS_ID INT NOT NULL PRIMARY KEY,
         NAME varchar(255) not null,
         CUST_ID int not null,
-        PRIMARY KEY (CUST_ID),
 		CREATE_DATE datetime NOT NULL
-		CONSTRAINT df_businessCreateDate DEFAULT (getdate())
+		CONSTRAINT df_businessCreateDate DEFAULT (getdate()),
+		PhoneNumber Char(10) NULL
     );
 
 
@@ -272,24 +278,6 @@ END
 		Create_Date datetime NOT NULL
 		CONSTRAINT DF_IndivCreateDate DEFAULT (getdate())
     );
-
-IF OBJECT_ID('OFFICER','u') IS NOT NULL
-BEGIN
-DROP TABLE OFFICER
-END
-
-    CREATE TABLE OFFICER (
-        OFFICER_ID int identity(1,1) not null PRIMARY KEY,
-        END_DATE datetime,
-        FIRST_NAME varchar(30) not null,
-        LAST_NAME varchar(30) not null,
-        START_DATE datetime not null,
-        TITLE varchar(20),
-        CUST_ID int,
-		CREATE_DATE datetime NOT NULL
-		CONSTRAINT df_OfficerCreateDate DEFAULT (getdate())
-    );
-
 
 IF OBJECT_ID('PRODUCT_TYPE','u') IS NOT NULL
 BEGIN
@@ -378,12 +366,6 @@ END
         FOREIGN KEY (SUPERIOR_EMP_ID) 
         REFERENCES EMPLOYEE;
 
-
-    ALTER TABLE OFFICER 
-        ADD CONSTRAINT FK_OFFICER_CUSTOMER
-        FOREIGN KEY (CUST_ID) 
-        REFERENCES CUSTOMER;
-
     ALTER TABLE PRODUCT 
         ADD CONSTRAINT FK_PRODUCT_PRODUCT_TYPE
         FOREIGN KEY (PRODUCT_TYPE_CD) 
@@ -466,127 +448,181 @@ VALUES (3, 'Bill', 'Oddie',Convert(Datetime, '2000-02-09',120),
   'Treasurer', 
   (SELECT branch_id FROM branch WHERE name = 'Headquarters'));
 ---------------------
+---------------------
 INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
   dept_id, title, assigned_branch_id)
-VALUES (4, 'Susan', 'Hawthorne',Convert(Datetime, '2002-04-24',120), 
+VALUES (4, 'Bill', 'Oddie',Convert(Datetime, '2014-10-22',120),
   (SELECT dept_id FROM department WHERE name = 'Operations'), 
-  'Operations Manager', 
+  'Head of Operations', 
+  (SELECT branch_id FROM branch WHERE name = 'Headquarters'));
+---------------------
+
+INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
+  dept_id, title, assigned_branch_id)
+VALUES (5, 'Fiona', 'Hawthorne',Convert(Datetime, '2002-04-24',120), 
+  (SELECT dept_id FROM department WHERE name = 'Operations'), 
+  'Branch Manager', 
   (SELECT branch_id FROM branch WHERE name = 'Headquarters'));
 ---------------------
 INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
   dept_id, title, assigned_branch_id)
-VALUES (5, 'Barry', 'Goodhall',Convert(Datetime, '2003-11-14',120), 
+VALUES (6, 'Barry', 'Goodhall',Convert(Datetime, '2003-11-14',120), 
   (SELECT dept_id FROM department WHERE name = 'Loans'), 
   'Loan Manager', 
   (SELECT branch_id FROM branch WHERE name = 'Headquarters'));
 ---------------------
+---------------------
 INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
   dept_id, title, assigned_branch_id)
-VALUES (6, 'Sarah', 'Fortinbras',Convert(Datetime, '2004-03-17',120), 
+VALUES (7, 'Beryl', 'Braintree',Convert(Datetime, '2008-11-14',120), 
+  (SELECT dept_id FROM department WHERE name = 'IT'), 
+  'Head of IT', 
+  (SELECT branch_id FROM branch WHERE name = 'Headquarters'));
+---------------------
+
+INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
+  dept_id, title, assigned_branch_id)
+VALUES (8, 'Sarah', 'Fortinbras',Convert(Datetime, '2004-03-17',120), 
   (SELECT dept_id FROM department WHERE name = 'Operations'), 
   'Head Teller', 
   (SELECT branch_id FROM branch WHERE name = 'Headquarters'));
 ---------------------
 INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
   dept_id, title, assigned_branch_id)
-VALUES (7, 'John', 'Fowler',Convert(Datetime, '2004-09-15',120), 
+VALUES (9, 'John', 'Fowler',Convert(Datetime, '2004-09-15',120), 
   (SELECT dept_id FROM department WHERE name = 'Operations'), 
   'Teller', 
   (SELECT branch_id FROM branch WHERE name = 'Headquarters'));
 ---------------------
 INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
   dept_id, title, assigned_branch_id)
-VALUES (8, 'Jane', 'Murray',Convert(Datetime, '2002-12-02',120), 
+VALUES (10, 'Jane', 'Murray',Convert(Datetime, '2002-12-02',120), 
   (SELECT dept_id FROM department WHERE name = 'Operations'), 
   'Teller', 
   (SELECT branch_id FROM branch WHERE name = 'Headquarters'));
 ---------------------
 INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
   dept_id, title, assigned_branch_id)
-VALUES (9, 'Lloyd', 'Grossman',Convert(Datetime, '2002-05-03',120), 
+VALUES (11, 'Lloyd', 'Grossman',Convert(Datetime, '2002-05-03',120), 
   (SELECT dept_id FROM department WHERE name = 'Operations'), 
   'Teller', 
   (SELECT branch_id FROM branch WHERE name = 'Headquarters'));
 ---------------------
 INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
   dept_id, title, assigned_branch_id)
-VALUES (10, 'Daniel', 'Danielson',Convert(Datetime, '2002-07-27',120), 
+VALUES (12, 'Daniel', 'Danielson',Convert(Datetime, '2002-07-27',120), 
   (SELECT dept_id FROM department WHERE name = 'Operations'), 
   'Head Teller', 
   (SELECT branch_id FROM branch WHERE name = 'Croydon Branch'));
 ---------------------
 INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
   dept_id, title, assigned_branch_id)
-VALUES (11, 'Brent', 'Zimmler',Convert(Datetime, '2000-10-23',120), 
+VALUES (13, 'Brent', 'Zimmler',Convert(Datetime, '2000-10-23',120), 
   (SELECT dept_id FROM department WHERE name = 'Operations'), 
   'Teller', 
   (SELECT branch_id FROM branch WHERE name = 'Croydon Branch'));
 ---------------------
 INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
   dept_id, title, assigned_branch_id)
-VALUES (12, 'Sabu', 'Sondenheit',Convert(Datetime, '2003-01-08',120), 
+VALUES (14, 'Sabu', 'Sondenheit',Convert(Datetime, '2003-01-08',120), 
   (SELECT dept_id FROM department WHERE name = 'Operations'), 
   'Teller', 
   (SELECT branch_id FROM branch WHERE name = 'Croydon Branch'));
 ---------------------
 INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
   dept_id, title, assigned_branch_id)
-VALUES (13, 'Chris', 'Towers',Convert(Datetime, '2000-05-11',120), 
+VALUES (15, 'Chris', 'Towers',Convert(Datetime, '2000-05-11',120), 
   (SELECT dept_id FROM department WHERE name = 'Operations'), 
   'Head Teller', 
   (SELECT branch_id FROM branch WHERE name = 'Hastings Branch'));
 ---------------------
 INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
   dept_id, title, assigned_branch_id)
-VALUES (14, 'Jim', 'Waters',Convert(Datetime, '2002-08-09',120), 
+VALUES (16, 'Jim', 'Waters',Convert(Datetime, '2002-08-09',120), 
   (SELECT dept_id FROM department WHERE name = 'Operations'), 
   'Teller', 
   (SELECT branch_id FROM branch WHERE name = 'Hastings Branch'));
 ---------------------
 INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
   dept_id, title, assigned_branch_id)
-VALUES (15, 'Natalie', 'Bucket',Convert(Datetime, '2003-04-01',120), 
+VALUES (17, 'Natalie', 'Bucket',Convert(Datetime, '2003-04-01',120), 
   (SELECT dept_id FROM department WHERE name = 'Operations'), 
   'Teller', 
   (SELECT branch_id FROM branch WHERE name = 'Hastings Branch'));
 ---------------------
 INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
   dept_id, title, assigned_branch_id)
-VALUES (16, 'Jeremy', 'Mayday',Convert(Datetime, '2001-03-15',120), 
+VALUES (18, 'Anna', 'Montague-Jones',Convert(Datetime, '2017-03-15',120), 
+  (SELECT dept_id FROM department WHERE name = 'Operations'), 
+  'Branch Manager', 
+  (SELECT branch_id FROM branch WHERE name = 'Manchester Branch'));
+---------------------
+---------------------
+INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
+  dept_id, title, assigned_branch_id)
+VALUES (19, 'Jeremy', 'Mayday',Convert(Datetime, '2001-03-15',120), 
   (SELECT dept_id FROM department WHERE name = 'Operations'), 
   'Head Teller', 
   (SELECT branch_id FROM branch WHERE name = 'Manchester Branch'));
 ---------------------
 INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
   dept_id, title, assigned_branch_id)
-VALUES (17, 'Biff', 'Nichols',Convert(Datetime, '2002-06-29',120), 
+VALUES (20, 'Biff', 'Nichols',Convert(Datetime, '2002-06-29',120), 
   (SELECT dept_id FROM department WHERE name = 'Operations'), 
   'Teller', 
   (SELECT branch_id FROM branch WHERE name = 'Manchester Branch'));
 ---------------------
 INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
   dept_id, title, assigned_branch_id)
-VALUES (18, 'Caroline', 'Escobar',Convert(Datetime, '2002-12-12',120), 
+VALUES (21, 'Caroline', 'Escobar',Convert(Datetime, '2002-12-12',120), 
   (SELECT dept_id FROM department WHERE name = 'Operations'), 
   'Teller', 
   (SELECT branch_id FROM branch WHERE name = 'Manchester Branch'));
+---------------------
+INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
+  dept_id, title, assigned_branch_id)
+VALUES (22, 'Sara', 'Banders',Convert(Datetime, '2002-04-24',120), 
+  (SELECT dept_id FROM department WHERE name = 'Operations'), 
+  'Branch Manager', 
+  (SELECT branch_id FROM branch WHERE name = 'Croydon Branch'));
+---------------------
+INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
+  dept_id, title, assigned_branch_id)
+VALUES (23, 'Jimmy', 'Nail',Convert(Datetime, '2002-12-12',120), 
+  (SELECT dept_id FROM department WHERE name = 'Operations'), 
+  'Branch Manager', 
+  (SELECT branch_id FROM branch WHERE name = 'Hastings Branch'));
+---------------------
+INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
+  dept_id, title, assigned_branch_id)
+VALUES (24, 'Marie', 'Burns',Convert(Datetime, '2002-12-12',120), 
+  (SELECT dept_id FROM department WHERE name = 'Operations'), 
+  'Operations Manager', 
+  (SELECT branch_id FROM branch WHERE name = 'Online'));
+---------------------
+INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
+  dept_id, title, assigned_branch_id)
+VALUES (25, 'Jackie', 'Pantaloons',Convert(Datetime, '2002-12-12',120), 
+  (SELECT dept_id FROM department WHERE name = 'Operations'), 
+  'Teller', 
+  (SELECT branch_id FROM branch WHERE name = 'Online'));
+
+
 --Create Automatic Emp_id for automatic popluation
 INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
   dept_id, title, assigned_branch_id)
-VALUES (19, 'Automatic', 'Creation',Convert(Datetime, '2002-12-12',120), 
+VALUES (100, 'Automatic', 'Creation',Convert(Datetime, '2002-12-12',120), 
   (SELECT dept_id FROM department WHERE name = 'Operations'), 
   'Auto', 
   (SELECT branch_id FROM branch WHERE name = 'Headquarters'));
 --Create Automatic Emp_id for automatic popluation
 INSERT INTO employee (emp_id, First_Name, Last_Name, start_date, 
   dept_id, title, assigned_branch_id)
-VALUES (20, 'Online', 'Online',Convert(Datetime, '2002-12-12',120), 
+VALUES (200, 'Online', 'Online',Convert(Datetime, '2002-12-12',120), 
   (SELECT dept_id FROM department WHERE name = 'Operations'), 
   'Auto', 
   (SELECT branch_id FROM branch WHERE name = 'Online'));
 
-
-    
 
   
 SET IDENTITY_INSERT employee  OFF;  
@@ -599,7 +635,7 @@ BEGIN
 DROP TABLE #emp_tmp
 END
  
-SELECT emp_id, Title 
+SELECT emp_id, Title, DEPT_ID
 INTO  #emp_tmp
 FROM EMPLOYEE
 
@@ -608,18 +644,36 @@ FROM EMPLOYEE
 UPDATE employee SET superior_emp_id =
  (SELECT emp_id FROM #emp_tmp WHERE Title = 'President')
 WHERE ((Title = 'Vice President')
-  or (Title = 'Treasurer'));
+  or (Title = 'Treasurer')
+  or (Title = 'Online')
+  or (Title = 'Automatic')
+  or (Title = 'Head of IT')
+  or (Title = 'Head of Operations'));
 ---------------------
 UPDATE employee SET superior_emp_id =
- (SELECT emp_id FROM #emp_tmp WHERE Title = 'Operations Manager')
-WHERE Title = 'Head Teller';
+ (SELECT emp_id FROM #emp_tmp WHERE Title = 'Head of Operations')
+WHERE Title = 'Branch Manager';
+---------------------
+UPDATE employee
+SET superior_emp_id = emp.emp_id
+FROM #emp_tmp emp
+WHERE emp.TITLE = 'Branch Manager'
+and  employee.Title = 'Head Teller'
+and employee.dept_id = emp.DEPT_ID ; 
+---------------------
+---------------------
+UPDATE employee
+SET superior_emp_id = emp.emp_id
+FROM #emp_tmp emp
+WHERE emp.TITLE = 'Head Teller'
+and  employee.Title = 'Teller'
+and employee.dept_id = emp.DEPT_ID ; 
 ---------------------
 UPDATE employee 
 SET superior_emp_id = emp.emp_id
 FROM #emp_tmp emp
-WHERE emp.TITLE = 'Head Teller'
-and  employee.Title = 'Teller'; 
----------------------
+WHERE emp.TITLE = 'Head of IT'
+and  employee.Title = 'Online'; 
 
 drop table #emp_tmp;
 
@@ -656,6 +710,9 @@ VALUES ('CUR','Current Account','ACCOUNT',Convert(Datetime,'2000-01-01',120));
 ---------------------
 INSERT INTO product (product_cd, name, product_type_cd, date_offered)
 VALUES ('SAV','Savings Account','ACCOUNT',Convert(Datetime,'2000-01-01',120));
+---------------------
+INSERT INTO product (product_cd, name, product_type_cd, date_offered)
+VALUES ('BUS','Business Account','ACCOUNT',Convert(Datetime,'2000-01-01',120));
 ---------------------
 INSERT INTO product (product_cd, name, product_type_cd, date_offered)
 VALUES ('AUT','Loan','LOAN',Convert(Datetime,'2000-01-01',120));
