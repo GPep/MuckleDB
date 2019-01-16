@@ -145,12 +145,9 @@ END
         CUST_ID int NOT NULL,
         OPEN_BRANCH_ID int not null,
         OPEN_EMP_ID int not null,
-        PRODUCT_id INT not null
+        PRODUCT_id INT not null,
+		Last_Amended_By int
     );
-
-
-
-
 
 
 IF OBJECT_ID('BRANCH','u') IS NOT NULL
@@ -213,7 +210,10 @@ END
 		POST_CODE varchar(7),
 		Country Varchar(25),
 		CREATE_DATE datetime NOT NULL
-		CONSTRAINT df_customerCreateDate DEFAULT (getdate())
+		CONSTRAINT df_customerCreateDate DEFAULT (getdate()),
+		Created_By int NOT NULL,
+		Last_amended_date datetime,
+		Last_amended_by int
     );
 
 IF OBJECT_ID('BUSINESS','u') IS NOT NULL
@@ -227,6 +227,9 @@ END
         CUST_ID int not null,
 		CREATE_DATE datetime NOT NULL
 		CONSTRAINT df_businessCreateDate DEFAULT (getdate()),
+		Created_By int NOT NULL,
+		Last_amended_date datetime,
+		Last_amended_by int,
 		PhoneNumber Char(10) NULL
     );
 
@@ -276,7 +279,10 @@ END
 	    PhoneNumber Char(10),
         CUST_ID int not null,
 		Create_Date datetime NOT NULL
-		CONSTRAINT DF_IndivCreateDate DEFAULT (getdate())
+		CONSTRAINT DF_IndivCreateDate DEFAULT (getdate()),
+		Created_By int NOT NULL,
+		Last_amended_date datetime,
+		Last_amended_by int
     );
 
 IF OBJECT_ID('PRODUCT_TYPE','u') IS NOT NULL
@@ -326,6 +332,11 @@ END
         FOREIGN KEY (OPEN_EMP_ID) 
         REFERENCES EMPLOYEE;
 
+    ALTER TABLE ACCOUNT
+		ADD CONSTRAINT FK_ACCOUNT_EMPLOYEE_AMENDED_BY
+		FOREIGN KEY (Last_amended_by)
+		REFERENCES EMPLOYEE;
+
     ALTER TABLE ACCOUNT 
         ADD CONSTRAINT FK_ACCOUNT_PRODUCT
         FOREIGN KEY (PRODUCT_ID) 
@@ -350,6 +361,26 @@ END
         ADD CONSTRAINT FK_BUSINESS_EMPLOYEE
         FOREIGN KEY (CUST_ID) 
         REFERENCES CUSTOMER;
+
+	ALTER TABLE BUSINESS
+		ADD CONSTRAINT FK_BUSINESS_EMPLOYEE_CREATED_BY
+		FOREIGN KEY (CREATED_by)
+		REFERENCES EMPLOYEE;
+
+	ALTER TABLE CUSTOMER
+		ADD CONSTRAINT FK_CUSTOMER_EMPLOYEE_AMENDED_BY
+		FOREIGN KEY (Last_amended_by)
+		REFERENCES EMPLOYEE;
+
+	ALTER TABLE INDIVIDUAL
+		ADD CONSTRAINT FK_INDIVIDUAL_EMPLOYEE_AMENDED_BY
+		FOREIGN KEY (Last_amended_by)
+		REFERENCES EMPLOYEE;
+
+	ALTER TABLE INDIVIDUAL
+		ADD CONSTRAINT FK_INDIVIDUAL_EMPLOYEE_CREATED_BY
+		FOREIGN KEY (Created_by)
+		REFERENCES EMPLOYEE;
 
     ALTER TABLE EMPLOYEE 
         ADD CONSTRAINT FK_EMPLOYEE_BRANCH

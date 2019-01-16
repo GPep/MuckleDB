@@ -10,11 +10,11 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-IF OBJECT_ID('sp_NewTransaction') IS NULL
-  EXEC ('CREATE PROCEDURE sp_NewTransaction AS RETURN 0;')
+IF OBJECT_ID('sp_CreateOverdraft') IS NULL
+  EXEC ('CREATE PROCEDURE sp_CreateOverdraft AS RETURN 0;')
 GO
 
-ALTER PROCEDURE [dbo].[sp_NewTransaction] @account_id int , @amount DECIMAL(20,2), @emp_id int
+ALTER PROCEDURE [dbo].[sp_CreateOverdraft] @account_id int , @overdraft DECIMAL(20,2), @emp_id int
 AS
 BEGIN
 SET NOCOUNT ON;
@@ -22,7 +22,7 @@ SET NOCOUNT ON;
 -- Author:		Glenn Pepper
 -- Create date: 2018-11-16
 -- Version: 1.0
--- Description:	This Stored Procedure will create new transactions 
+-- Description:	This Stored Procedure will create an overdraft for an account 
 -- =============================================
 
 SET XACT_ABORT ON
@@ -32,20 +32,10 @@ DECLARE @ErrorNumber AS INT, @ErrorMessage AS NVarchar(1000), @error_severity AS
 DECLARE @txn_type_cd char(3)
 DECLARE @branch_id int
 DECLARE @currentbalance decimal(20,2)
-DECLARE @Overdraft decimal(20,2)
 DECLARE @status varchar(10)
 
 BEGIN TRY;
 BEGIN TRANSACTION;
-
-IF (@amount < 0)
-BEGIN
-SET @txn_type_cd = 'DBT' -- Debit
-END
-ELSE 
-BEGIN
-SET @txn_type_cd = 'CDT' -- Credit
-END
 
 SET @branch_id = (select assigned_branch_id from EMPLOYEE where EMP_ID = @emp_id)
 
@@ -59,22 +49,12 @@ RETURN
 END
 
 
---Check current balance - if less than zero (or overdraft amount), do not allow debit to complete.
-
-SET @Currentbalance = (SELECT dbo.fn_AccountBalance(@account_id))
-SET @Overdraft = (SELECT overdraft FROM Account WHERE ACCOUNT_ID = @account_id)
-
-IF (@currentbalance + @amount < @Overdraft)
-BEGIN
-PRINT 'Not enough Funds available for this debit'
-COMMIT TRANSACTION;
-RETURN
-END
-
 ELSE
 BEGIN
-INSERT INTO ACC_TRANSACTION(Amount, TXN_TYPE_CD, ACCOUNT_ID, EXECUTION_BRANCH_ID, TELLER_EMP_ID)
-VALUES (@amount, @txn_type_cd, @Account_id, @branch_id, @Emp_id)
+UPDATE dbo.ACCOUNT
+SET Overdraft = @Overdraft,
+LAST_ACTIVITY_DATE = GETDATE(),
+Last_Amended_By = @emp_id
 END
 
 
@@ -93,6 +73,3 @@ END CATCH
 
 
 END
-
-
---EXECUTE SP_Newtransaction @account_id = 5000000, @amount = '-122565.00', @emp_id = 100

@@ -47,7 +47,7 @@ FETCH NEXT FROM BAccount_cursor INTO @Business
  
 WHILE @@FETCH_STATUS = 0
 BEGIN
-EXECUTE sp_createNewAccount @cust_id = @Business, @product_id = 3, @branch_id = 5, @amount = '1000', @Emp_id = 200
+EXECUTE sp_createNewAccount @cust_id = @Business, @product_id = 3, @branch_id = 5, @amount = '10000', @Emp_id = 200
 
 FETCH NEXT FROM BAccount_cursor INTO @Business
 

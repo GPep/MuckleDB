@@ -49,7 +49,8 @@ County VARCHAR(50),
 Country VARCHAR(25),
 Post_Code Varchar(7),
 Birth_Date date,
-PhoneNumber char(10)
+PhoneNumber char(10),
+Created_By int
 )
 
 --declare variables for any error reporting
@@ -60,8 +61,8 @@ DECLARE @ErrorNumber AS INT, @ErrorMessage AS NVarchar(1000), @error_severity AS
 BEGIN TRY;
 BEGIN TRANSACTION;
 
-INSERT INTO #FemaleCustomer (cust_Id, ID, First_Name, Last_name, Title, Email_address, Address1, Town, County, country, Post_Code, Birth_date, PhoneNumber)
-SELECT (NEXT VALUE FOR dbo.cust_id), female.ID, female.First_Name, female.Last_name, female.Title, female.Emailaddress, addr.Address1, addr.Town, addr.County, addr.country,addr.Post_Code, bd.Birth_Date, pn.PhoneNumber
+INSERT INTO #FemaleCustomer (cust_Id, ID, First_Name, Last_name, Title, Email_address, Address1, Town, County, country, Post_Code, Birth_date, PhoneNumber, created_By)
+SELECT (NEXT VALUE FOR dbo.cust_id), female.ID, female.First_Name, female.Last_name, female.Title, female.Emailaddress, addr.Address1, addr.Town, addr.County, addr.country,addr.Post_Code, bd.Birth_Date, pn.PhoneNumber, 100
 FROM MockData.data.FemaleIndividual AS female
 INNER JOIN MockData.data.Address AS addr
 ON female.id = addr.ID
@@ -72,13 +73,13 @@ ON female.id = pn.id
   
 
 ---------------------
-INSERT INTO customer (cust_id, cust_type_cd, address, Town, COUNTY, post_code, Country)
-SELECT cust_id, 'I', Address1, Town, County, Post_code, Country
+INSERT INTO customer (cust_id, cust_type_cd, address, Town, COUNTY, post_code, Country, Created_By)
+SELECT cust_id, 'I', Address1, Town, County, Post_code, Country, Created_By
 FROM #femaleCustomer
 
 --------------------
-INSERT INTO individual (Title, First_Name, Last_Name, birth_date, EmailAddress, phoneNumber, Cust_ID)
-SELECT Title, First_name, Last_name, Birth_date, Email_address, phoneNumber, cust_id
+INSERT INTO individual (Title, First_Name, Last_Name, birth_date, EmailAddress, phoneNumber, Cust_ID, Created_By)
+SELECT Title, First_name, Last_name, Birth_date, Email_address, phoneNumber, cust_id, Created_By
 FROM #femaleCustomer	
 
 COMMIT TRANSACTION;

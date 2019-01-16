@@ -45,7 +45,8 @@ Town VARCHAR(50),
 County VARCHAR(50),
 Country VARCHAR(50),
 Post_Code Varchar(7),
-PhoneNumber char(10)
+PhoneNumber char(10),
+Created_By int
 )
 
 --declare variables for any error reporting
@@ -57,8 +58,8 @@ BEGIN TRY;
 BEGIN TRANSACTION;
 
 
-INSERT INTO #BusinessCustomer (cust_id, ID, name, Address1, Town, County, country, Post_Code, PhoneNumber)
-SELECT (NEXT VALUE FOR dbo.cust_id), Business.ID, business.name, addr.Address1, addr.Town, addr.County, addr.country, addr.Post_Code, pn.PhoneNumber
+INSERT INTO #BusinessCustomer (cust_id, ID, name, Address1, Town, County, country, Post_Code, PhoneNumber, Created_By)
+SELECT (NEXT VALUE FOR dbo.cust_id), Business.ID, business.name, addr.Address1, addr.Town, addr.County, addr.country, addr.Post_Code, pn.PhoneNumber, 100
 FROM MockData.data.Business AS Business
 INNER JOIN MockData.data.Address AS addr
 ON Business.id = addr.ID
@@ -66,13 +67,13 @@ INNER JOIN MockData.data.PhoneNumber as pn
 ON business.id = pn.id
 
 ---------------------
-INSERT INTO customer (Cust_id, cust_type_cd, address, Town, COUNTY, post_code, Country)
-SELECT cust_id, 'B', Address1, Town, County, Post_code, Country
+INSERT INTO customer (Cust_id, cust_type_cd, address, Town, COUNTY, post_code, Country, Created_By)
+SELECT cust_id, 'B', Address1, Town, County, Post_code, Country, created_by
 FROM #BusinessCustomer
 
 --------------------
-INSERT INTO Business(Business_ID, Name, phoneNumber, Cust_ID)
-SELECT (NEXT VALUE FOR dbo.Business_id),Name, phoneNumber, cust_id
+INSERT INTO Business(Business_ID, Name, phoneNumber, Cust_ID, created_By)
+SELECT (NEXT VALUE FOR dbo.Business_id),Name, phoneNumber, cust_id, created_By
 FROM #BusinessCustomer	
 
 COMMIT TRANSACTION;

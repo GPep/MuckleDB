@@ -52,7 +52,8 @@ County VARCHAR(50),
 Country VARCHAR(50),
 Post_Code Varchar(7),
 Birth_Date date,
-PhoneNumber char(10)
+PhoneNumber char(10),
+Created_By Int
 )
 
 --declare variables for any error reporting
@@ -64,8 +65,8 @@ BEGIN TRY;
 BEGIN TRANSACTION;
 
 
-INSERT INTO #MaleCustomer (cust_id, ID, First_Name, Last_name, Title, Email_address, Address1, Town, County, country, Post_Code, Birth_date, PhoneNumber)
-SELECT (NEXT VALUE FOR dbo.cust_id), male.ID, male.First_Name, male.Last_name, male.Title, male.Emailaddress, addr.Address1, addr.Town, addr.County, addr.country,addr.Post_Code, bd.Birth_Date, pn.PhoneNumber
+INSERT INTO #MaleCustomer (cust_id, ID, First_Name, Last_name, Title, Email_address, Address1, Town, County, country, Post_Code, Birth_date, PhoneNumber, created_by)
+SELECT (NEXT VALUE FOR dbo.cust_id), male.ID, male.First_Name, male.Last_name, male.Title, male.Emailaddress, addr.Address1, addr.Town, addr.County, addr.country,addr.Post_Code, bd.Birth_Date, pn.PhoneNumber, 100
 FROM MockData.data.MaleIndividual AS male
 INNER JOIN MockData.data.Address AS addr
 ON male.id = addr.ID
@@ -75,13 +76,13 @@ INNER JOIN MockData.data.PhoneNumber as pn
 ON male.id = pn.id
 
 ---------------------
-INSERT INTO customer (Cust_id, cust_type_cd, address, Town, COUNTY, post_code, Country)
-SELECT cust_id, 'I', Address1, Town, County, Post_code, Country
+INSERT INTO customer (Cust_id, cust_type_cd, address, Town, COUNTY, post_code, Country, created_by)
+SELECT cust_id, 'I', Address1, Town, County, Post_code, Country, created_By
 FROM #MaleCustomer
 
 --------------------
-INSERT INTO individual (Title, First_Name, Last_Name, birth_date, EmailAddress, phoneNumber, Cust_ID)
-SELECT Title, First_name, Last_name, Birth_date, Email_address, phoneNumber, cust_id
+INSERT INTO individual (Title, First_Name, Last_Name, birth_date, EmailAddress, phoneNumber, Cust_ID, created_by)
+SELECT Title, First_name, Last_name, Birth_date, Email_address, phoneNumber, cust_id, Created_By
 FROM #MaleCustomer	
 
 COMMIT TRANSACTION;
