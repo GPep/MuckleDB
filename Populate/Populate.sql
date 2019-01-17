@@ -96,3 +96,12 @@ END
 
 
 DROP TABLE #RandomCustomer
+
+
+--Create Transactions
+
+EXECUTE sp_RandomTransactionSavings @count = 1000
+
+EXECUTE sp_RandomTransactionCurrent @count = 5000
+
+EXECUTE sp_RandomTransactionBusiness @count = 2500
